@@ -1,4 +1,4 @@
-<title>Gastos Ethérea Pilates</title>
+<title>Gastos Deka Pilates</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -154,7 +154,7 @@ label.f textarea { resize: vertical; min-height: 60px; }
 <div class="wrap">
   <header class="top">
     <div class="lead">
-      <span class="eyebrow">Ethérea Pilates · Inversión del estudio</span>
+      <span class="eyebrow">Deka Pilates · Inversión del estudio</span>
       <h1>Gastos <em>compartidos</em></h1>
       <p id="subtitle">Todo lo que van invirtiendo en el estudio, quién lo pagó y cómo queda el reparto entre las dos.</p>
     </div>
@@ -316,7 +316,7 @@ label.f textarea { resize: vertical; min-height: 60px; }
   function toast(msg) { const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast._t); toast._t = setTimeout(() => t.hidden = true, 2200); }
 
   /* ---------- Almacenamiento: db compartida, o navegador como respaldo ---------- */
-  const LS_KEY = 'etherea-gastos-v1';
+  const LS_KEY = 'deka-gastos-v1';
   const store = {
     db: null,
     local() { try { return JSON.parse(localStorage.getItem(LS_KEY)) || { gastos: [], cfg: {} }; } catch { return { gastos: [], cfg: {} }; } },
@@ -617,7 +617,7 @@ label.f textarea { resize: vertical; min-height: 60px; }
     const rows = [['Fecha', 'Concepto', 'Categoría', 'Monto', 'Moneda', 'Pagó', 'Estado', 'Método', 'Proveedor', 'Notas']]
       .concat([...state.gastos].sort((a, b) => (a.fecha || '').localeCompare(b.fecha || ''))
         .map(g => [g.fecha, g.concepto, catLabel(g.categoria), g.monto, state.cfg.moneda, who(g.quien), g.estado || 'pagado', g.metodo, g.proveedor, g.notas]));
-    try { await dl.save({ filename: 'gastos-etherea-' + today() + '.csv', data: '﻿' + rows.map(r => r.map(cell).join(',')).join('\n') }); }
+    try { await dl.save({ filename: 'gastos-deka-' + today() + '.csv', data: '﻿' + rows.map(r => r.map(cell).join(',')).join('\n') }); }
     catch {}
   }
 
