@@ -1,6 +1,6 @@
-# Ethérea Pilates
+# Deka Pilates
 
-Sitio web del estudio **Ethérea Pilates**: página única (one-page) construida con HTML, CSS y JavaScript puro, sin dependencias de build ni frameworks. Funciona abriendo `index.html` directamente o publicada en GitHub Pages.
+Sitio web del estudio **Deka Pilates**: página única (one-page) construida con HTML, CSS y JavaScript puro, sin dependencias de build ni frameworks. Funciona abriendo `index.html` directamente o publicada en GitHub Pages.
 
 ## Estructura del proyecto
 
