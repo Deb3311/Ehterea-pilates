@@ -14,6 +14,7 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 IMG = os.path.join(ROOT, "build", "img")
 os.makedirs(IMG, exist_ok=True)
 FORCE = "--force" in sys.argv
+EX_PREFIX = "ex_"
 
 DIAGRAMS = {
     "d_anatomy": E.anatomy_chart,
@@ -74,7 +75,7 @@ def process(blocks):
                 E.pose_gallery(path, b["items"], per_row=b["per_row"])
             out.append({"t": "fig", "name": b["name"], "caption": b["caption"], "width": b["width"]})
         elif t == "ex":
-            name = "ex_" + slug(b["name"])
+            name = EX_PREFIX + slug(b["name"])
             path = os.path.join(IMG, name + ".png")
             if FORCE or not os.path.exists(path):
                 E.exercise_figure(path, b["frames"], b["prim"], b["sec"])

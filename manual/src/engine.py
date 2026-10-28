@@ -4,6 +4,7 @@ Convención de ángulos (grados, absolutos): 0 = hacia abajo, 90 = hacia
 adelante (+x), 180 = hacia arriba, -90 = hacia atrás (-x).
 """
 import math
+import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -303,15 +304,88 @@ def draw_figure(ax, p, x0=0.0, floor=0.0, props=None, color=NAVY, far=NAVY_L, sc
             pts[key + k] = T(val)
     pts["H"] = T(sk["H"])
     pts["S"] = T(sk["S"])
+    extra = []
     for pr in props:
-        draw_prop(ax, pr, pts, floor, color)
-    xs = [q[0] for q in pts.values()]
-    ys = [q[1] for q in pts.values()]
+        r = draw_prop(ax, pr, pts, floor, color)
+        if r:
+            extra.extend(r)
+    xs = [q[0] for q in pts.values()] + [e[0] for e in extra]
+    ys = [q[1] for q in pts.values()] + [e[1] for e in extra]
     return min(xs), max(xs), max(ys), pts
+
+
+WOOD, WOOD_D, PAD, PAD_D, METAL = "#B89A72", "#7A6248", "#8FA7B8", "#5D7486", "#8A8A8A"
+
+
+def draw_reformer(ax, pr, pts, floor):
+    """Reformer en vista lateral, ajustado a la figura. Devuelve puntos extremos."""
+    rail = floor + 1.15
+    ctop = floor + pr.get("ch", 1.6)
+    body = [q for k, q in pts.items()]
+    a = min(q[0] for q in body) - 0.8
+    b = max(q[0] for q in body) + 0.8
+    fb = None
+    if pr.get("fb"):
+        fx, fy = pts[pr["fb"]]
+        dx, dy = pr.get("fb_off", (0.0, -0.22))
+        fb = (fx + dx, fy + dy)
+        a, b = min(a, fb[0] - 1.0), max(b, fb[0] + 1.0)
+    # extremo del footbar
+    if fb is not None:
+        fb_end = "L" if fb[0] < (a + b) / 2 else "R"
+    else:
+        fb_end = pr.get("fb_end", "R")
+    k1, k2 = pr.get("carr", ("C", "H"))
+    xs = [pts[k1][0], pts[k2][0]]
+    ca, cb = min(xs) - pr.get("pad", 0.6), max(xs) + pr.get("pad", 0.6)
+    ca, cb = max(ca, a + 0.4), min(cb, b - 0.4)
+    # patas y riel
+    for x in (a + 0.35, b - 0.35):
+        ax.plot([x, x], [floor, rail - 0.2], color=WOOD_D, lw=3, zorder=1)
+    ax.add_patch(Rectangle((a, rail - 0.3), b - a, 0.3, fc=WOOD, ec=WOOD_D, lw=0.8, zorder=1))
+    # resortes (zigzag del carro al extremo del footbar)
+    s0, s1 = (cb, b - 0.3) if fb_end == "R" else (a + 0.3, ca)
+    if s1 - s0 > 0.4:
+        n = max(int((s1 - s0) / 0.18), 4)
+        zx = np.linspace(s0, s1, n)
+        zy = [rail + 0.06 + (0.07 if i % 2 else -0.07) for i in range(n)]
+        ax.plot(zx, zy, color=METAL, lw=1.0, zorder=1)
+    # carro
+    ax.add_patch(FancyBboxPatch((ca, rail + 0.02), cb - ca, ctop - rail - 0.06, boxstyle="round,pad=0.03",
+                                fc=PAD, ec=PAD_D, lw=0.8, zorder=2))
+    if pr.get("blocks"):
+        bx = pts[pr["blocks"]][0] + pr.get("blocks_dx", 0.0)
+        ax.add_patch(Rectangle((bx - 0.12, ctop - 0.02), 0.24, 0.55, fc=PAD_D, ec=PAD_D, zorder=2))
+    # caja
+    if pr.get("box"):
+        bk1, bk2 = pr.get("box_span", (k1, k2))
+        bxs = [pts[bk1][0], pts[bk2][0]]
+        bh = pr.get("box_h", 1.2)
+        bp = pr.get("box_pad", 0.4)
+        ax.add_patch(Rectangle((min(bxs) - bp, ctop - 0.04), max(bxs) - min(bxs) + 2 * bp, bh, fc=WOOD, ec=WOOD_D, lw=0.8, zorder=2))
+    # footbar
+    if fb is not None:
+        base_x = fb[0] + (0.6 if fb_end == "R" else -0.6)
+        ax.plot([fb[0], base_x], [fb[1], rail], color=METAL, lw=2.2, zorder=1)
+        ax.add_patch(Circle(fb, 0.17, fc="#C9C9C9", ec="#666666", lw=0.8, zorder=2))
+    # poleas y correas
+    if pr.get("straps"):
+        rx = a + 0.3 if fb_end == "R" else b - 0.3
+        top = rail + pr.get("riser", 2.7)
+        ax.plot([rx, rx], [rail, top], color=WOOD_D, lw=3, zorder=1)
+        ax.add_patch(Circle((rx, top), 0.16, fc=METAL, ec="#555", zorder=2))
+        for key in pr["straps"]:
+            px, py = pts[key]
+            ax.plot([rx, px], [top, py], color="#5A4A3A", lw=1.1, zorder=6)
+        if pr.get("strap_end"):
+            pass
+    return [(a, floor), (b, floor), (a, rail + pr.get("riser", 2.7) if pr.get("straps") else rail)]
 
 
 def draw_prop(ax, pr, pts, floor, color):
     kind = pr["k"]
+    if kind == "reformer":
+        return draw_reformer(ax, pr, pts, floor)
     if kind == "db":
         for key in pr.get("at", ["HdN", "HdF"]):
             x, y = pts[key]

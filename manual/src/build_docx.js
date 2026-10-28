@@ -9,8 +9,9 @@ const {
 
 const ROOT = path.resolve(__dirname, "..");
 const IMG = path.join(ROOT, "build", "img");
-const book = JSON.parse(fs.readFileSync(path.join(ROOT, "build", "book.json"), "utf8"));
-const OUT = process.argv[2] || path.join(ROOT, "dist", "Manual_Sculpt_Barre_BlockBurn.docx");
+const book = JSON.parse(fs.readFileSync(process.argv[2] || path.join(ROOT, "build", "book.json"), "utf8"));
+const META = book.meta || null;
+const OUT = process.argv[3] || path.join(ROOT, "dist", "Manual_Sculpt_Barre_BlockBurn.docx");
 
 const NAVY = "1F3A5F", GOLD = "B08D57", TEAL = "5E8C8A", INK = "222222", GRAY = "6B6B6B", LIGHT = "F3F0EA";
 const BODY = "Cambria", HEAD = "Calibri";
@@ -123,6 +124,7 @@ const BOX = {
   cue: { fill: "E7F1EC", bar: "3C7A5A", label: "“ CUE CLAVE" },
   tip: { fill: "F4EFE4", bar: GOLD, label: "★ DATO ÚTIL" },
   practica: { fill: "EEEAF4", bar: "7E6B8F", label: "✎ PRÁCTICA" },
+  escuela: { fill: "FBF1DE", bar: "C38A2E", label: "\u25C6 VARÍA SEGÚN ESCUELA" },
 };
 
 function box(b) {
@@ -147,7 +149,7 @@ function ficha(e) {
   out.push(new Paragraph({ keepNext: true, spacing: { after: 40 }, children: [
     new TextRun({ text: "FICHA TÉCNICA", bold: true, size: 15, color: GOLD, font: HEAD }),
     new TextRun({ text: "   Nivel: " + e.level, size: 17, color: GRAY, font: HEAD })] }));
-  out.push(image(e.img, e.img_narrow ? 2.5 : 6.5));
+  out.push(image(e.img, e.img_narrow ? 2.3 : 5.9));
   if (e.img_narrow) out.push(caption("Mapa muscular (rojo = principal; salmón = secundario/estabilizador). Ver la descripción para la posición."));
   const L = 1900, R = W - L;
   const lab = (t) => cell(t, L, { fill: "E8E2D7", bold: true, size: 17, color: NAVY, keep: true });
@@ -159,11 +161,19 @@ function ficha(e) {
     style: { paragraph: { indent: { left: 300, hanging: 240 } } } }] });
   const rows = [
     ["Objetivo", e.obj], ["Posición inicial", e.start], ["Ejecución", lst(e.steps, ref)], ["Respiración", e.breath],
+    ...(e.springs ? [["Resortes y montaje", e.springs]] : []),
     ["Músculos principales", e.prim_txt], ["Secundarios / estabilizadores", e.sec_txt || "—"],
     ["Errores frecuentes", lst(e.errors, "bulx")], ["Regresión (más fácil)", lst(e.regress, "buldn")],
     ["Progresión (más difícil)", lst(e.progress, "bulup")], ["Dosificación sugerida", e.dose],
   ];
-  const trs = rows.map(([a, b]) => new TableRow({ cantSplit: true, children: [lab(a), Array.isArray(b) ? new TableCell({ children: b, width: { size: R, type: WidthType.DXA }, borders, margins: { top: 60, bottom: 60, left: 100, right: 100 } }) : val(b)] }));
+  const trs = rows.map(([a, b], ri) => {
+    const keep = ri < 3;
+    const lc = cell(a, L, { fill: "E8E2D7", bold: true, size: 17, color: NAVY, keep });
+    const vc = Array.isArray(b)
+      ? new TableCell({ children: b.map((p) => { if (!keep) p.properties.root = p.properties.root.filter((x) => !(x && x.rootKey === "w:keepNext")); return p; }), width: { size: R, type: WidthType.DXA }, borders, margins: { top: 60, bottom: 60, left: 100, right: 100 } })
+      : cell(b, R, { size: 18, keep });
+    return new TableRow({ cantSplit: true, children: [lc, vc] });
+  });
   trs.push(new TableRow({ cantSplit: true, children: [cell("Cue clave", L, { fill: "3C7A5A", color: "FFFFFF", bold: true, size: 17 }),
     cell(e.cue, R, { fill: "E7F1EC", size: 18, bold: true, color: "2F5E46" })] }));
   out.push(new Table({ width: { size: W, type: WidthType.DXA }, columnWidths: [L, R], rows: trs, layout: TableLayoutType.FIXED }));
@@ -212,6 +222,7 @@ function quiz(m) {
 
 // ---------------------------------------------------------------- portada y preliminares
 function cover() {
+  if (META) return coverMeta();
   const out = [];
   out.push(new Paragraph({ spacing: { before: 1400, after: 0 }, alignment: AlignmentType.LEFT,
     children: [new TextRun({ text: "MANUAL DE FORMACIÓN", font: HEAD, size: 26, color: GOLD, bold: true, characterSpacing: 60 })] }));
@@ -227,7 +238,40 @@ function cover() {
   return out;
 }
 
+function coverMeta() {
+  const out = [];
+  out.push(new Paragraph({ spacing: { before: 1400, after: 0 }, children: [new TextRun({ text: META.kicker, font: HEAD, size: 26, color: GOLD, bold: true, characterSpacing: 60 })] }));
+  META.cover_lines.forEach((l, i) => out.push(new Paragraph({ spacing: { before: i ? 0 : 120, after: i === META.cover_lines.length - 1 ? 200 : 0 },
+    border: i === META.cover_lines.length - 1 ? { bottom: { style: BorderStyle.SINGLE, size: 18, color: GOLD, space: 8 } } : undefined,
+    children: [new TextRun({ text: l, font: HEAD, size: 76, bold: true, color: NAVY })] })));
+  out.push(new Paragraph({ spacing: { before: 200, after: 120 }, children: [new TextRun({ text: META.subtitle, font: BODY, size: 30, italics: true, color: INK })] }));
+  out.push(new Paragraph({ spacing: { after: 300 }, children: [new TextRun({ text: META.tagline, font: HEAD, size: 22, color: GRAY })] }));
+  out.push(image(META.cover_image, 6.3));
+  out.push(new Paragraph({ spacing: { before: 300 }, children: [new TextRun({ text: META.prepared, font: HEAD, size: 22, color: NAVY, bold: true })] }));
+  out.push(new Paragraph({ children: [new TextRun({ text: META.footnote, font: HEAD, size: 18, color: GRAY, italics: true })] }));
+  return out;
+}
+
+function frontMeta() {
+  const out = [];
+  out.push(heading("Aviso importante", 1, { pageBreak: true }));
+  META.notices.forEach((n) => out.push(...box(n)));
+  out.push(heading("Cómo usar este libro", 2));
+  META.howto.forEach((t) => out.push(P(t)));
+  out.push(heading("Leyenda de recuadros", 3));
+  const widths = scaleWidths([1.6, 1.5, 3.4]);
+  out.push(new Table({ width: { size: W, type: WidthType.DXA }, columnWidths: widths, rows: META.legend.map(([k, t, d]) => new TableRow({ children: [
+    cell(BOX[k].label, widths[0], { fill: BOX[k].fill, color: BOX[k].bar, bold: true, size: 15 }), cell(t, widths[1], { bold: true, size: 18 }), cell(d, widths[2], { size: 18 })] })) }));
+  out.push(new Paragraph({ spacing: { after: 160 }, children: [] }));
+  out.push(heading("Cómo leer una ficha técnica", 3));
+  out.push(...olist(META.ficha_help));
+  out.push(heading("Índice", 1, { pageBreak: true }));
+  out.push(new TableOfContents("Índice", { hyperlink: true, headingStyleRange: "1-3" }));
+  return out;
+}
+
 function front() {
+  if (META) return frontMeta();
   const out = [];
   out.push(heading("Aviso importante", 1, { pageBreak: true }));
   out.push(...box({ kind: "seguridad", title: "Salud y seguridad", body: [
@@ -263,7 +307,7 @@ function partSection(part, idx) {
   const ch = [];
   ch.push(new Paragraph({ spacing: { before: 2000, after: 0 }, children: [new TextRun({ text: `PARTE ${ROMAN[idx]}`, font: HEAD, size: 28, bold: true, color: GOLD, characterSpacing: 80 })] }));
   ch.push(new Paragraph({ heading: HeadingLevel.HEADING_1, spacing: { before: 60, after: 300 }, children: [new TextRun({ text: part.title, size: 64 })] }));
-  ch.push(...box({ kind: "general", title: `¿Qué es ${part.title}?`, body: [{ t: "p", x: part.intro }] }));
+  ch.push(...box({ kind: "general", title: part.box_title || `¿Qué es ${part.title}?`, body: [{ t: "p", x: part.intro }] }));
   ch.push(new Paragraph({ spacing: { before: 200, after: 80 }, children: [new TextRun({ text: "Estructura de esta parte", bold: true, font: HEAD, size: 24, color: NAVY })] }));
   const rows = part.modules.map((m) => [`Módulo ${m.num}`, m.topics.map((t) => t.title).join(" · ")]);
   ch.push(...table({ head: ["Módulo", "Temas (en el orden del programa)"], rows, widths: [1.1, 5.4] }));
@@ -292,7 +336,7 @@ function appendixSection() {
 function hdr(label) {
   return new Header({ children: [new Paragraph({ alignment: AlignmentType.RIGHT,
     border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: GOLD, space: 4 } },
-    children: [new TextRun({ text: "Manual de formación  ·  ", size: 16, color: GRAY, font: HEAD }), new TextRun({ text: label, size: 16, color: NAVY, bold: true, font: HEAD })] })] });
+    children: [new TextRun({ text: (META ? META.header : "Manual de formación") + "  ·  ", size: 16, color: GRAY, font: HEAD }), new TextRun({ text: label, size: 16, color: NAVY, bold: true, font: HEAD })] })] });
 }
 const ftr = () => new Footer({ children: [new Paragraph({ alignment: AlignmentType.CENTER,
   children: [new TextRun({ children: [PageNumber.CURRENT], size: 17, color: GRAY, font: HEAD })] })] });
@@ -306,7 +350,7 @@ const sections = [
 ];
 
 const doc = new Document({
-  creator: "Ethérea Pilates", title: "Manual de formación: Sculpt & Burn, Barre y Block Burn Pilates",
+  creator: "Ethérea Pilates", title: META ? META.doc_title : "Manual de formación: Sculpt & Burn, Barre y Block Burn Pilates",
   description: "Guía de estudio para aprendizaje personal desde cero",
   features: { updateFields: true },
   numbering: { config: numberingConfigs },

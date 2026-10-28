@@ -50,11 +50,11 @@ def OFICIAL(tema, *items):
 
 
 def EX(name, *, en=None, level="Principiante", frames, prim, sec=(), extra=None, obj, start, steps,
-       breath, errors, regress, progress, dose, cue, props=None):
+       breath, errors, regress, progress, dose, cue, props=None, springs=None):
     return {"t": "ex", "name": name, "en": en, "level": level, "frames": frames,
             "prim": list(prim), "sec": list(sec), "extra": extra, "obj": obj, "start": start,
             "steps": steps, "breath": breath, "errors": errors, "regress": regress,
-            "progress": progress, "dose": dose, "cue": cue, "props": props,
+            "progress": progress, "dose": dose, "cue": cue, "props": props, "springs": springs,
             "prim_txt": ", ".join(MUSCLES[m] for m in prim),
             "sec_txt": ", ".join([MUSCLES[m] for m in sec] + ([extra] if extra else []))}
 
